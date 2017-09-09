@@ -45,7 +45,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
 	// Add measurements to each particle and add random Gaussian noise.
-	// NOTE: When adding noise you may find std::normal_distribution and std::default_random_engine useful.
+	// NOTE: When adding noise you may find normal_distribution and default_random_engine useful.
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
 
@@ -78,11 +78,13 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     }
 }
 
-void ParticleFilter::dataAssociation(std::vector<LandmarkObs> landmarks, std::vector<LandmarkObs> &observations) {
+void ParticleFilter::dataAssociation(vector<LandmarkObs> landmarks, vector<LandmarkObs> &observations) {
 	// Find the predicted measurement that is closest to each observed measurement and assign the
 	// observed measurement to this particular landmark.
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
 	//   implement this method and use it as a helper during the updateWeights phase.
+
+    // cout << "ParticleFilter::dataAssociation" << endl;
 
     // go through each landmark and find the one observation it is closest to
     for(int a = 0; a < landmarks.size(); a++){
@@ -91,6 +93,8 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> landmarks, std::ve
         for(int b = 1; b < observations.size(); b++){
             double curr_distance = distance(observations[b], landmarks[a]);
             if(curr_distance < min_distance){
+                // cout << "\t observations[b].id" << observations[b].id  << endl;
+
                 // if this observation was already claimed for a landmark, just skip it
                 if(observations[b].id > -1) continue;
                 min_distance = curr_distance;
@@ -98,10 +102,19 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> landmarks, std::ve
                 index = b;
             }
         }
+
+        // save the observations closest landmark
+        observations[index].id = a;
     }
+
+    /*
+    for(int a = 0; a < observations.size(); a++){
+        cout << "observations[a].id: "  << observations[a].id << endl;
+    }
+     */
 }
 
-void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], std::vector<LandmarkObs> observations, Map map_landmarks) {
+void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], vector<LandmarkObs> observations, Map map_landmarks) {
 	// TODO: Update the weights of each particle using a mult-variate Gaussian distribution. You can read
 	//   more about this distribution here: https://en.wikipedia.org/wiki/Multivariate_normal_distribution
 	// NOTE: The observations are given in the VEHICLE'S coordinate system. Your particles are located
@@ -112,11 +125,55 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], s
 	//   and the following is a good resource for the actual equation to implement (look at equation 
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
+
+    cout << "ParticleFilter::updateWeights" << endl;
+
+    // used to hold transformed observations and inRange landmarks
+    vector<LandmarkObs> inRange;
+    vector<LandmarkObs> transformedObservations;
+
+    // for each particle
+
+    for(int a = 0; a < num_particles; a++){
+        // cout << "a: " << a << endl;
+        // find the landmarks in sensor range
+        findLandmarksinRange(particles[a], map_landmarks, sensor_range, inRange);
+
+        // transform observations to map coordinate space
+        transformToCoordinateSpace(particles[a], observations, transformedObservations);
+
+        // associate observations with landmarks
+        dataAssociation(inRange, transformedObservations);
+
+        // shared values in weights calculation
+        const double sigxp2x2 = 2 * pow(std_landmark[0], 2);
+        const double sigyp2x2 = 2 * pow(std_landmark[1], 2);
+        const double pix2xsigxxsigy = 2 * M_PI * std_landmark[0] * std_landmark[1];
+
+        // update weights
+        for(int b = 0; b < transformedObservations.size(); b++){
+            // cout << "id: " << transformedObservations[b].id << endl;
+            // skip unaffliated
+            if(transformedObservations[b].id == -1) continue;
+
+            double diff_x = transformedObservations[b].x - inRange[transformedObservations[b].id].x;
+            // cout << "diff_x: " << diff_x << endl;
+            double diff_y = transformedObservations[b].y - inRange[transformedObservations[b].id].y;
+            // cout << "diff_y: " << diff_y << endl;
+            double power = -1 * (pow(diff_x, 2) / sigxp2x2 + pow(diff_y, 2) / sigyp2x2);
+            // cout << "power: " << power << endl;
+            double e = exp(power);
+            // cout << "e: " << e << endl;
+            double weight = e / pix2xsigxxsigy;
+            if (weight > 0) particles[a].weight *= weight;
+        }
+        cout << "weight: " << particles[a].weight << endl;
+    }
 }
 
 void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight. 
-	// NOTE: You may find std::discrete_distribution helpful here.
+	// NOTE: You may find discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
 
 
@@ -126,9 +183,34 @@ double ParticleFilter::distance(LandmarkObs observed, LandmarkObs actual){
     return sqrt(pow(observed.x - actual.x, 2) + pow(observed.y - actual.y, 2));
 }
 
+void ParticleFilter::findLandmarksinRange(Particle particle, Map landmarks, double sensor_range, vector<LandmarkObs> &inRange){
+    for(int a = 0; a < landmarks.landmark_list.size(); a++){
+        double distance = sqrt(pow(particle.x - landmarks.landmark_list[a].x_f, 2) + pow(particle.y - landmarks.landmark_list[a].y_f, 2));
+
+        if(distance <= sensor_range){
+            inRange.push_back(LandmarkObs{
+                    landmarks.landmark_list[a].id_i,
+                    landmarks.landmark_list[a].x_f,
+                    landmarks.landmark_list[a].y_f
+            });
+        }
+    }
+}
+
+void ParticleFilter::transformToCoordinateSpace(Particle particle, vector<LandmarkObs> observations, vector<LandmarkObs> &transformedObservations){
+    // cout << "ParticleFilter::transformToCoordinateSpace" << endl;
+    for(int a = 0; a < observations.size(); a++){
+        transformedObservations.push_back(LandmarkObs{
+                -1,
+                particle.x + cos(particle.theta) * observations[a].x - sin(particle.theta) * observations[a].y,
+                particle.y + sin(particle.theta) * observations[a].x + cos(particle.theta) * observations[a].y
+        });
+        // cout << transformedObservations[a].id << endl;
+    }
+}
 
 // do not mess with the following
-Particle ParticleFilter::SetAssociations(Particle particle, std::vector<int> associations, std::vector<double> sense_x, std::vector<double> sense_y) {
+Particle ParticleFilter::SetAssociations(Particle particle, vector<int> associations, vector<double> sense_x, vector<double> sense_y) {
 	//particle: the particle to assign each listed association, and association's (x,y) world coordinates mapping to
 	// associations: The landmark id that goes along with each listed association
 	// sense_x: the associations x mapping already converted to world coordinates

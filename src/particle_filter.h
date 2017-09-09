@@ -41,7 +41,33 @@ private:
 	// threshold value
 	float threshold;
 
+	/**
+	 * Method to get distance between 2D points
+	 *
+	 * @param observed
+	 * @param actual
+	 * @return distance between two points
+	 */
 	double distance(LandmarkObs observed, LandmarkObs actual);
+
+	/**
+	 * Method to find landmarks in sensor range
+	 *
+	 * @param particle
+	 * @param landmarks
+	 * @param sensor_range
+	 * @param inRange
+	 */
+	void findLandmarksinRange(Particle particle, Map landmarks, double sensor_range, vector<LandmarkObs> &inRange);
+
+	/**
+	 * Method to transform observations-in-relation-to-car to map coordinates
+	 *
+	 * @param particle
+	 * @param observations
+	 * @param transformedObservations
+	 */
+	void transformToCoordinateSpace(Particle particle, vector<LandmarkObs> observations, vector<LandmarkObs> &transformedObservations);
 	
 public:
 	
