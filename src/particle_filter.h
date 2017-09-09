@@ -11,6 +11,8 @@
 
 #include "helper_functions.h"
 
+using namespace std;
+
 struct Particle {
 
 	int id;
@@ -18,34 +20,35 @@ struct Particle {
 	double y;
 	double theta;
 	double weight;
-	std::vector<int> associations;
-	std::vector<double> sense_x;
-	std::vector<double> sense_y;
+	vector<int> associations;
+	vector<double> sense_x;
+	vector<double> sense_y;
 };
 
 
 
 class ParticleFilter {
-	
+private:
 	// Number of particles to draw
-	int num_particles; 
-	
-	
+	int num_particles;
 	
 	// Flag, if filter is initialized
 	bool is_initialized;
 	
 	// Vector of weights of all particles
-	std::vector<double> weights;
+	vector<double> weights;
+
+	// threshold value
+	float threshold;
 	
 public:
 	
 	// Set of current particles
-	std::vector<Particle> particles;
+	vector<Particle> particles;
 
 	// Constructor
 	// @param num_particles Number of particles
-	ParticleFilter() : num_particles(0), is_initialized(false) {}
+	ParticleFilter() : num_particles(100), is_initialized(false), threshold(0.001) {}
 
 	// Destructor
 	~ParticleFilter() {}
@@ -78,7 +81,7 @@ public:
 	 * @param predicted Vector of predicted landmark observations
 	 * @param observations Vector of landmark observations
 	 */
-	void dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations);
+	void dataAssociation(vector<LandmarkObs> predicted, vector<LandmarkObs> &observations);
 	
 	/**
 	 * updateWeights Updates the weights for each particle based on the likelihood of the 
@@ -88,7 +91,7 @@ public:
 	 * @param observations Vector of landmark observations
 	 * @param map Map class containing map landmarks
 	 */
-	void updateWeights(double sensor_range, double std_landmark[], std::vector<LandmarkObs> observations,
+	void updateWeights(double sensor_range, double std_landmark[], vector<LandmarkObs> observations,
 			Map map_landmarks);
 	
 	/**
@@ -101,11 +104,11 @@ public:
 	 * Set a particles list of associations, along with the associations calculated world x,y coordinates
 	 * This can be a very useful debugging tool to make sure transformations are correct and assocations correctly connected
 	 */
-	Particle SetAssociations(Particle particle, std::vector<int> associations, std::vector<double> sense_x, std::vector<double> sense_y);
+	Particle SetAssociations(Particle particle, vector<int> associations, vector<double> sense_x, vector<double> sense_y);
 	
-	std::string getAssociations(Particle best);
-	std::string getSenseX(Particle best);
-	std::string getSenseY(Particle best);
+	string getAssociations(Particle best);
+	string getSenseX(Particle best);
+	string getSenseY(Particle best);
 
 	/**
 	 * initialized Returns whether particle filter is initialized yet or not.

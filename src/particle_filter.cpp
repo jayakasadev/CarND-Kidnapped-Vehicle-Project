@@ -17,14 +17,30 @@
 
 #include "particle_filter.h"
 
-using namespace std;
-
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
-	// TODO: Set the number of particles. Initialize all particles to first position (based on estimates of 
-	//   x, y, theta and their uncertainties from GPS) and all weights to 1. 
+	// Set the number of particles. Initialize all particles to first position (based on estimates of
+	// x, y, theta and their uncertainties from GPS) and all weights to 1.
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 
+    // random number generator
+    default_random_engine gen;
+
+    // This line creates a normal (Gaussian) distribution for x, y and theta
+    normal_distribution<double> dist_x(x, std[0]);
+    normal_distribution<double> dist_y(y, std[1]);
+    normal_distribution<double> dist_theta(theta, std[2]);
+
+    for(int a = 0; a < num_particles; a++){
+        particles.push_back(Particle{
+                a,
+                dist_x(gen),
+                dist_y(gen),
+                dist_theta(gen),
+                1.0
+
+        });
+    }
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
@@ -33,9 +49,36 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
 
+    // random number generator
+    default_random_engine gen;
+
+    // This line creates a normal (Gaussian) distribution for x, y and theta
+    // used to add noise
+    normal_distribution<double> dist_x(0, std_pos[0]);
+    normal_distribution<double> dist_y(0, std_pos[1]);
+    normal_distribution<double> dist_theta(0, std_pos[2]);
+
+
+    for(int a = 0; a < num_particles; a++){
+        // going straight or roughly straight
+        if(fabs(yaw_rate) < threshold){
+            double vxdt = velocity * delta_t;
+            particles[a].x += vxdt * cos(particles[a].theta) + dist_x(gen);
+            particles[a].y += vxdt * sin(particles[a].theta) + dist_y(gen);
+            particles[a].theta += dist_theta(gen);
+        }
+            // definitely turning
+        else{
+            double vdivyr = velocity / yaw_rate;
+            double yrxdt = yaw_rate * delta_t;
+            particles[a].x += vdivyr * (sin(particles[a].theta + yrxdt) - sin(particles[a].theta)) + dist_x(gen);
+            particles[a].y += vdivyr * (cos(particles[a].theta - cos(particles[a].theta + yrxdt))) + dist_y(gen);
+            particles[a].theta += yrxdt + dist_theta(gen);
+        }
+    }
 }
 
-void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations) {
+void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs> &observations) {
 	// TODO: Find the predicted measurement that is closest to each observed measurement and assign the 
 	//   observed measurement to this particular landmark.
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
