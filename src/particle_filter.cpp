@@ -44,7 +44,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 }
 
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
-	// TODO: Add measurements to each particle and add random Gaussian noise.
+	// Add measurements to each particle and add random Gaussian noise.
 	// NOTE: When adding noise you may find std::normal_distribution and std::default_random_engine useful.
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
@@ -78,16 +78,30 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
     }
 }
 
-void ParticleFilter::dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs> &observations) {
-	// TODO: Find the predicted measurement that is closest to each observed measurement and assign the 
-	//   observed measurement to this particular landmark.
+void ParticleFilter::dataAssociation(std::vector<LandmarkObs> landmarks, std::vector<LandmarkObs> &observations) {
+	// Find the predicted measurement that is closest to each observed measurement and assign the
+	// observed measurement to this particular landmark.
 	// NOTE: this method will NOT be called by the grading code. But you will probably find it useful to 
 	//   implement this method and use it as a helper during the updateWeights phase.
 
+    // go through each landmark and find the one observation it is closest to
+    for(int a = 0; a < landmarks.size(); a++){
+        int index = 0;
+        double min_distance = distance(observations[0], landmarks[a]);
+        for(int b = 1; b < observations.size(); b++){
+            double curr_distance = distance(observations[b], landmarks[a]);
+            if(curr_distance < min_distance){
+                // if this observation was already claimed for a landmark, just skip it
+                if(observations[b].id > -1) continue;
+                min_distance = curr_distance;
+                // using this to save the index of the observation this landmark is closest to
+                index = b;
+            }
+        }
+    }
 }
 
-void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], 
-		std::vector<LandmarkObs> observations, Map map_landmarks) {
+void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], std::vector<LandmarkObs> observations, Map map_landmarks) {
 	// TODO: Update the weights of each particle using a mult-variate Gaussian distribution. You can read
 	//   more about this distribution here: https://en.wikipedia.org/wiki/Multivariate_normal_distribution
 	// NOTE: The observations are given in the VEHICLE'S coordinate system. Your particles are located
@@ -105,10 +119,16 @@ void ParticleFilter::resample() {
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
 
+
 }
 
-Particle ParticleFilter::SetAssociations(Particle particle, std::vector<int> associations, std::vector<double> sense_x, std::vector<double> sense_y)
-{
+double ParticleFilter::distance(LandmarkObs observed, LandmarkObs actual){
+    return sqrt(pow(observed.x - actual.x, 2) + pow(observed.y - actual.y, 2));
+}
+
+
+// do not mess with the following
+Particle ParticleFilter::SetAssociations(Particle particle, std::vector<int> associations, std::vector<double> sense_x, std::vector<double> sense_y) {
 	//particle: the particle to assign each listed association, and association's (x,y) world coordinates mapping to
 	// associations: The landmark id that goes along with each listed association
 	// sense_x: the associations x mapping already converted to world coordinates
@@ -126,8 +146,7 @@ Particle ParticleFilter::SetAssociations(Particle particle, std::vector<int> ass
  	return particle;
 }
 
-string ParticleFilter::getAssociations(Particle best)
-{
+string ParticleFilter::getAssociations(Particle best) {
 	vector<int> v = best.associations;
 	stringstream ss;
     copy( v.begin(), v.end(), ostream_iterator<int>(ss, " "));
@@ -135,8 +154,8 @@ string ParticleFilter::getAssociations(Particle best)
     s = s.substr(0, s.length()-1);  // get rid of the trailing space
     return s;
 }
-string ParticleFilter::getSenseX(Particle best)
-{
+
+string ParticleFilter::getSenseX(Particle best) {
 	vector<double> v = best.sense_x;
 	stringstream ss;
     copy( v.begin(), v.end(), ostream_iterator<float>(ss, " "));
@@ -144,8 +163,8 @@ string ParticleFilter::getSenseX(Particle best)
     s = s.substr(0, s.length()-1);  // get rid of the trailing space
     return s;
 }
-string ParticleFilter::getSenseY(Particle best)
-{
+
+string ParticleFilter::getSenseY(Particle best) {
 	vector<double> v = best.sense_y;
 	stringstream ss;
     copy( v.begin(), v.end(), ostream_iterator<float>(ss, " "));
