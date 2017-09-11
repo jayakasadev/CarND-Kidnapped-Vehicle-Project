@@ -19,6 +19,9 @@
 
 using namespace std;
 
+// declare a random engine to be used across multiple and various method calls
+static std::default_random_engine gen;
+
 void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// Set the number of particles. Initialize all particles to first position (based on estimates of
 	// x, y, theta and their uncertainties from GPS) and all weights to 1.
@@ -26,9 +29,6 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
 
     // cout << "ParticleFilter::init" << endl;
-
-    // random number generator
-    std::default_random_engine gen;
 
     // This line creates a normal (Gaussian) distribution for x, y and theta
     std::normal_distribution<double> dist_x(x, std[0]);
@@ -56,10 +56,9 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
 
-    // cout << "ParticleFilter::prediction" << endl;
+    cout << "ParticleFilter::prediction" << endl;
+    // cout << "delta_t: " << delta_t << " std_pos: [ " << std_pos[0] << " , " << std_pos[1] << " , "<< std_pos[2] << " ] velocity : " << velocity << " yawrate: " << yaw_rate << endl;
 
-    // random number generator
-    std::default_random_engine gen;
 
     // This line creates a normal (Gaussian) distribution for x, y and theta
     // used to add noise
@@ -73,18 +72,22 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
         // cout << "PRIOR Particle: [ id: " << particles[a].id << ", x: " << particles[a].x << ", y: " << particles[a].y << ", weight: " << particles[a].weight << " ]" << endl;
         if(fabs(yaw_rate) < threshold){
             double vxdt = velocity * delta_t;
-            particles[a].x += vxdt * cos(particles[a].theta) + dist_x(gen);
-            particles[a].y += vxdt * sin(particles[a].theta) + dist_y(gen);
-            particles[a].theta += dist_theta(gen);
+            particles[a].x += vxdt * cos(particles[a].theta);
+            particles[a].y += vxdt * sin(particles[a].theta);
         }
             // definitely turning
         else{
             double vdivyr = velocity / yaw_rate;
-            double yrxdt = yaw_rate * delta_t;
-            particles[a].x += vdivyr * (sin(particles[a].theta + yrxdt) - sin(particles[a].theta)) + dist_x(gen);
-            particles[a].y += vdivyr * (cos(particles[a].theta - cos(particles[a].theta + yrxdt))) + dist_y(gen);
-            particles[a].theta += yrxdt + dist_theta(gen);
+            double yrxdt = yaw_rate * delta_t; // change in theta
+            particles[a].x += vdivyr * (sin(particles[a].theta + yrxdt) - sin(particles[a].theta));
+            particles[a].y += vdivyr * (cos(particles[a].theta) - cos(particles[a].theta + yrxdt));
+            particles[a].theta += yrxdt;
         }
+
+        // add noise
+        particles[a].x += dist_x(gen);
+        particles[a].y += dist_y(gen);
+        particles[a].theta += dist_theta(gen);
 
         // cout << "UPDATED Particle: [ id: " << particles[a].id << ", x: " << particles[a].x << ", y: " << particles[a].y << ", weight: " << particles[a].weight << " ]\n" << endl;
     }
@@ -176,11 +179,15 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], s
             double e = exp(power);
             // cout << "e: " << e << endl;
             double weight = e / pix2xsigxxsigy;
-            if (weight > 0) particles[a].weight *= weight;
+            // cout << "weight: " << weight << endl;
+            if (weight > 0) particles[a].weight *= weight; // TODO see if this is necessary
         }
-        // cout << "weight: " << particles[a].weight << endl;
+        cout <<"\tparticle[" << a << "]'s weight: " << particles[a].weight << endl;
         if(particles[a].weight > max_weight) max_weight = particles[a].weight;
     }
+
+    // reset the max weight to prevent infinite loops in the future
+    max_weight = 0;
 }
 
 void ParticleFilter::resample() {
@@ -191,41 +198,28 @@ void ParticleFilter::resample() {
     cout << "ParticleFilter::resample" << endl;
 
     // TODO find source of infinite loop
+    // return;
 
     vector<Particle> resampled;
 
     // generate random numbers
     std::default_random_engine gen;
 
-    std::uniform_real_distribution<double> distribution(0.0,(2 * max_weight));
+    std::uniform_real_distribution<double> distribution(0.0, 2 * max_weight);
     std::uniform_int_distribution<> range(0, num_particles-1);
 
     int index = range(gen);
     double beta = distribution(gen);
 
-    // doing this until resampled has enough particles
-    while(resampled.size() < num_particles){
-        // cout << "Particle: [ id: " << particles[a].id << ", x: " << particles[a].x << ", y: " << particles[a].y << ", weight: " << particles[a].weight << " ]" << endl;
-        // cout << "beta " << beta << endl;
-        // cout << "index " << index << endl;
-        if(particles[index].weight < beta){
+    // resample until i hae enough particles
+    for (int i = 0; i < num_particles; i++) {
+        beta += distribution(gen);
+        while (beta > particles[index].weight) {
             beta -= particles[index].weight;
-            index = (index + 1) % num_particles; // keep it circular
+            index = (index + 1) % num_particles;
         }
-        else{
-            // cout << "Particle: [ id: " << particles[index].id << ", x: " << particles[index].x << ", y: " << particles[index].y << ", weight: " << particles[index].weight << " ]" << endl;
-            resampled.push_back(Particle{
-                    index,
-                    particles[index].x,
-                    particles[index].y,
-                    1.0 // TODO reinit weights or keep old ones
-            });
-
-            beta = distribution(gen);
-            // playing with randomizing index after picking a particle
-            index = range(gen);
-            // if(resampled.size() == 4) exit(0);
-        }
+        cout << "\tparticle[" << index << "]'s weight " << particles[index].weight << endl;
+        resampled.push_back(particles[index]);
     }
 
     particles = resampled;
