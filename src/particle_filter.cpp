@@ -56,7 +56,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 	//  http://en.cppreference.com/w/cpp/numeric/random/normal_distribution
 	//  http://www.cplusplus.com/reference/random/default_random_engine/
 
-    cout << "ParticleFilter::prediction" << endl;
+    // cout << "ParticleFilter::prediction" << endl;
     // cout << "delta_t: " << delta_t << " std_pos: [ " << std_pos[0] << " , " << std_pos[1] << " , "<< std_pos[2] << " ] velocity : " << velocity << " yawrate: " << yaw_rate << endl;
 
 
@@ -141,7 +141,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], s
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
 
-    cout << "ParticleFilter::updateWeights" << endl;
+    // cout << "ParticleFilter::updateWeights" << endl;
 
     // used to hold transformed observations and inRange landmarks
     vector<LandmarkObs> inRange;
@@ -182,7 +182,7 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], s
             // cout << "weight: " << weight << endl;
             if (weight > 0) particles[a].weight *= weight; // TODO see if this is necessary
         }
-        cout <<"\tparticle[" << a << "]'s weight: " << particles[a].weight << endl;
+        // cout <<"\tparticle[" << a << "]'s weight: " << particles[a].weight << endl;
         if(particles[a].weight > max_weight) max_weight = particles[a].weight;
     }
 
@@ -191,14 +191,11 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], s
 }
 
 void ParticleFilter::resample() {
-	// TODO: Resample particles with replacement with probability proportional to their weight. 
+	// Resample particles with replacement with probability proportional to their weight.
 	// NOTE: You may find discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
 
-    cout << "ParticleFilter::resample" << endl;
-
-    // TODO find source of infinite loop
-    // return;
+    // cout << "ParticleFilter::resample" << endl;
 
     vector<Particle> resampled;
 
@@ -218,7 +215,7 @@ void ParticleFilter::resample() {
             beta -= particles[index].weight;
             index = (index + 1) % num_particles;
         }
-        cout << "\tparticle[" << index << "]'s weight " << particles[index].weight << endl;
+        // cout << "\tparticle[" << index << "]'s weight " << particles[index].weight << endl;
         resampled.push_back(particles[index]);
     }
 

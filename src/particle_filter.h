@@ -77,7 +77,7 @@ public:
 
 	// Constructor
 	// @param num_particles Number of particles
-	ParticleFilter() : num_particles(6), is_initialized(false), threshold(0.00001), max_weight(0) {}
+	ParticleFilter() : num_particles(25), is_initialized(false), threshold(0.00001), max_weight(0) {}
 
 	// Destructor
 	~ParticleFilter() {}
