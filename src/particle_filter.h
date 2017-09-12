@@ -17,7 +17,7 @@ struct Particle {
 	double x;
 	double y;
 	double theta;
-	double weight;
+    double weight;
 	std::vector<int> associations;
 	std::vector<double> sense_x;
 	std::vector<double> sense_y;
@@ -77,7 +77,7 @@ public:
 
 	// Constructor
 	// @param num_particles Number of particles
-	ParticleFilter() : num_particles(25), is_initialized(false), threshold(0.00001), max_weight(0) {}
+	ParticleFilter() : num_particles(10), is_initialized(false), threshold(0.0001), max_weight(0) {}
 
 	// Destructor
 	~ParticleFilter() {}
