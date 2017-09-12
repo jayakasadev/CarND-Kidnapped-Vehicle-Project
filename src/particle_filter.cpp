@@ -31,9 +31,9 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
     // cout << "ParticleFilter::init" << endl;
 
     // This line creates a normal (Gaussian) distribution for x, y and theta
-    std::normal_distribution<double> dist_x(x, std[0]);
-    std::normal_distribution<double> dist_y(y, std[1]);
-    std::normal_distribution<double> dist_theta(theta, std[2]);
+    normal_distribution<double> dist_x(x, std[0]);
+    normal_distribution<double> dist_y(y, std[1]);
+    normal_distribution<double> dist_theta(theta, std[2]);
 
     for(int a = 0; a < num_particles; a++){
         particles.push_back(Particle{
@@ -62,9 +62,9 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 
     // This line creates a normal (Gaussian) distribution for x, y and theta
     // used to add noise
-    std::normal_distribution<double> dist_x(0, std_pos[0]);
-    std::normal_distribution<double> dist_y(0, std_pos[1]);
-    std::normal_distribution<double> dist_theta(0, std_pos[2]);
+    normal_distribution<double> dist_x(0, std_pos[0]);
+    normal_distribution<double> dist_y(0, std_pos[1]);
+    normal_distribution<double> dist_theta(0, std_pos[2]);
 
 
     for(int a = 0; a < num_particles; a++){
@@ -119,6 +119,7 @@ void ParticleFilter::dataAssociation(std::vector<LandmarkObs> landmarks, std::ve
         }
 
         // save the observations closest landmark
+        // observations[a].id = landmarks[index].id;
         observations[a].id = index;
     }
 
@@ -143,10 +144,6 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], s
 
     // cout << "ParticleFilter::updateWeights" << endl;
 
-    // used to hold transformed observations and inRange landmarks
-    vector<LandmarkObs> inRange;
-    vector<LandmarkObs> transformedObservations;
-
     // shared values in weights calculation
     double sigxp2x2 = 2 * pow(std_landmark[0], 2);
     double sigyp2x2 = 2 * pow(std_landmark[1], 2);
@@ -157,6 +154,11 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[], s
 
     // for each particle
     for(int a = 0; a < num_particles; a++){
+
+        // used to hold transformed observations and inRange landmarks
+        vector<LandmarkObs> inRange;
+        vector<LandmarkObs> transformedObservations;
+
         // cout << "a: " << a << endl;
         // find the landmarks in sensor range
         findLandmarksinRange(particles[a], map_landmarks, sensor_range, inRange);
@@ -200,10 +202,8 @@ void ParticleFilter::resample() {
 
     // cout << "ParticleFilter::resample" << endl;
 
-    vector<Particle> resampled(num_particles);
-    vector<double> weights(num_particles);
+    vector<Particle> resampled;
 
-    /*
     std::uniform_real_distribution<double> distribution(0.0, 2 * max_weight);
     std::uniform_int_distribution<> range(0, num_particles-1);
 
@@ -219,14 +219,6 @@ void ParticleFilter::resample() {
         }
         // cout << "\tparticle[" << index << "]'s weight " << particles[index].weight << endl;
         resampled.push_back(particles[index]);
-    }
-     */
-
-    discrete_distribution<int> discrete_dist(weights.begin(), weights.end());
-
-    for (int a = 0; a < num_particles; a++) {
-        int index = discrete_dist(gen);
-        resampled.at(a) = particles.at(index);
     }
 
     particles = resampled;
