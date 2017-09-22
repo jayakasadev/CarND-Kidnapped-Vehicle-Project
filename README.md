@@ -1,5 +1,5 @@
 # Particle Filter 
-A simulated vehicle is placed on a 2D map with no idea of it's actual location. Given a noisy GPS estimate of its initial location, I used a Particle Filter to approximate the actual location of the car on the map given noisy sensor and control data. The goal was to track the vehicle and approximate it's location as it drove around the map. The performace of the vehicle is displayed as Root Mean Squared Error values in each dimension and control value. 
+A simulated vehicle is placed on a 2D map with no idea of its actual location. Given a noisy GPS estimate of its initial location, I used a Particle Filter to approximate the actual location of the car on the map given noisy sensor and control data. The goal was to track the vehicle and approximate its location as it drove around the map. The performance of the vehicle is displayed as Root Mean Squared Error values in each dimension and control value. 
 
 ## Running the Code
 This project involves the Term 2 Simulator which can be downloaded [here](https://github.com/udacity/self-driving-car-sim/releases)
